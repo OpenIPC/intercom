@@ -1,4 +1,4 @@
-# SIP Doorphone on OpenIPC / SIP Домофон на OpenIPC
+# SIP Doorphone on OpenIPC
 ## English
 
 ### Complete Guide to Building a SIP Doorphone with OpenIPC
@@ -313,10 +313,6 @@ MIT License - feel free to use and modify!
 Contributors
 Based on OpenIPC project
 
-
-
-Авторы
-На основе проекта OpenIPC
 
 
 
