@@ -1,0 +1,78 @@
+system:
+  webPort: 80
+  httpsPort: 443
+  logLevel: debug
+isp:
+  antiFlicker: disabled
+image:
+  mirror: true
+  flip: true
+  rotate: 0
+  contrast: 50
+  hue: 50
+  saturation: 50
+  luminance: 50
+video0:
+  enabled: true
+  codec: h264
+  fps: 25
+  bitrate: 4096
+  rcMode: vbr
+  gopSize: 1
+video1:
+  enabled: true
+  codec: h264
+  size: 704x576
+  fps: 15
+  bitrate: 1024
+  profile: main
+  rcMode: vbr
+jpeg:
+  enabled: true
+  qfactor: 50
+  fps: 5
+osd:
+  enabled: true
+  font: /usr/share/fonts/truetype/UbuntuMono-Regular.ttf
+  template: '%d.%m.%Y %H:%M:%S'
+  posX: 16
+  posY: 16
+  size: 1.0
+audio:
+  enabled: true
+  volume: 50
+  srate: 8000
+  codec: alaw
+  outputEnabled: true
+  outputVolume: 80
+  speakerPin: 0
+rtsp:
+  enabled: true
+  port: 554
+nightMode:
+  colorToGray: true
+  irCutSingleInvert: false
+  lightMonitor: false
+  lightSensorInvert: false
+  irCutPin1: 61
+  irCutPin2: 79
+  backlightPin: 4
+motionDetect:
+  enabled: false
+  visualize: false
+  debug: false
+records:
+  enabled: false
+  path: /mnt/mmcblk0p1/%F
+  split: 20
+  maxUsage: 95
+outgoing:
+  enabled: false
+watchdog:
+  enabled: true
+  timeout: 300
+hls:
+  enabled: false
+baresip:
+  enabled: true
+  substream: false

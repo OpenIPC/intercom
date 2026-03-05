@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Start httpd on port 8080 for backup manager
+httpd -p 8080 -h /var/www &
+
+(while true; do sleep 1; osd_server >/dev/null 2>&1; done) &
+
+exit 0
