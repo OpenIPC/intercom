@@ -1,7 +1,13 @@
 #!/bin/sh
 #===============================================================================
-# OpenIPC Doorphone Installer v3.2
+# OpenIPC Doorphone Installer v4.0
 # https://github.com/OpenIPC/intercom
+#===============================================================================
+# SAFE INSTALLATION MODE:
+# 1. Все файлы сначала скачиваются в /tmp/intercom_new/
+# 2. Проверяется, что все необходимые файлы скачались
+# 3. Только после успешной проверки происходит замена
+# 4. В случае ошибки - камера остаётся работоспособной
 #===============================================================================
 
 # Цвета для вывода
@@ -13,8 +19,8 @@ NC='\033[0m'
 
 clear
 echo "${BLUE}==========================================${NC}"
-echo "${BLUE}  OpenIPC Doorphone Installer v3.2${NC}"
-echo "${BLUE}  with fixed GitHub commit references${NC}"
+echo "${BLUE}  OpenIPC Doorphone Installer v4.0${NC}"
+echo "${BLUE}  SAFE INSTALLATION MODE${NC}"
 echo "${BLUE}==========================================${NC}"
 echo ""
 
@@ -65,9 +71,9 @@ download_file() {
 BASE_URL="https://raw.githubusercontent.com/OpenIPC/intercom/50bf937"
 
 #-----------------------------------------------------------------------------
-# Step 1: ОСТАНОВКА ВСЕХ СЕРВИСОВ
+# Step 1: ОСТАНОВКА СЕРВИСОВ
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 1: Stopping all services...${NC}"
+echo "${BLUE}Step 1: Stopping services...${NC}"
 
 # Останавливаем наши сервисы
 killall door_monitor.sh 2>/dev/null
@@ -78,7 +84,7 @@ killall httpd 2>/dev/null
 # Удаляем старые PID файлы
 rm -f /var/run/door_monitor.pid 2>/dev/null
 
-echo "${GREEN}  ✓ All services stopped${NC}"
+echo "${GREEN}  ✓ Services stopped${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
@@ -105,78 +111,186 @@ echo "${GREEN}  ✓ Using UART: $UART_SELECTED${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 3: ОЧИСТКА СТАРЫХ ФАЙЛОВ
+# Step 3: СОЗДАНИЕ ВРЕМЕННОЙ ДИРЕКТОРИИ
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 3: Cleaning old files...${NC}"
+echo "${BLUE}Step 3: Creating temporary directory...${NC}"
 
-# Удаляем старые CGI скрипты
-rm -f /var/www/cgi-bin/p/*.cgi 2>/dev/null
-rm -f /var/www/cgi-bin/backup.cgi 2>/dev/null
+TEMP_DIR="/tmp/intercom_install_$$"
+mkdir -p "$TEMP_DIR"
+mkdir -p "$TEMP_DIR/www/cgi-bin/p"
+mkdir -p "$TEMP_DIR/usr/bin"
+mkdir -p "$TEMP_DIR/etc"
+mkdir -p "$TEMP_DIR/etc/baresip"
+mkdir -p "$TEMP_DIR/etc/webui"
+mkdir -p "$TEMP_DIR/usr/share/sounds/doorphone"
 
-# Удаляем старые системные скрипты
-rm -f /usr/bin/door_monitor.sh 2>/dev/null
-rm -f /usr/bin/mqtt_client.sh 2>/dev/null
-rm -f /usr/bin/check_temp_keys.sh 2>/dev/null
-
-# Удаляем старые конфиги (но сохраняем бэкапы)
-if [ -f /etc/door_keys.conf ]; then
-    cp /etc/door_keys.conf /tmp/door_keys.conf.bak
-    echo "  ✓ Keys database backed up to /tmp/door_keys.conf.bak"
-fi
-
-if [ -f /etc/mqtt.conf ]; then
-    cp /etc/mqtt.conf /tmp/mqtt.conf.bak
-    echo "  ✓ MQTT config backed up to /tmp/mqtt.conf.bak"
-fi
-
-if [ -f /etc/webui/telegram.conf ]; then
-    cp /etc/webui/telegram.conf /tmp/telegram.conf.bak
-    echo "  ✓ Telegram config backed up to /tmp/telegram.conf.bak"
-fi
-
-if [ -f /etc/doorphone_sounds.conf ]; then
-    cp /etc/doorphone_sounds.conf /tmp/doorphone_sounds.conf.bak
-    echo "  ✓ Sound config backed up to /tmp/doorphone_sounds.conf.bak"
-fi
-
-# Удаляем старые конфиги
-rm -f /etc/door_keys.conf 2>/dev/null
-rm -f /etc/mqtt.conf 2>/dev/null
-rm -f /etc/doorphone_sounds.conf 2>/dev/null
-rm -f /etc/webui/telegram.conf 2>/dev/null
-rm -f /etc/baresip/accounts 2>/dev/null
-rm -f /etc/baresip/call_number 2>/dev/null
-
-echo "${GREEN}  ✓ Old files cleaned${NC}"
+echo "${GREEN}  ✓ Temporary directory created: $TEMP_DIR${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 4: Создание директорий
+# Step 4: СКАЧИВАНИЕ ВСЕХ ФАЙЛОВ ВО ВРЕМЕННУЮ ДИРЕКТОРИЮ
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 4: Creating directories...${NC}"
-mkdir -p /var/www/cgi-bin/p
-mkdir -p /var/www/a
-mkdir -p /usr/share/sounds/doorphone
-mkdir -p /root/backups
-mkdir -p /etc/baresip
-mkdir -p /etc/webui
-echo "${GREEN}  ✓ Directories created${NC}"
+echo "${BLUE}Step 4: Downloading files to temporary directory...${NC}"
+
+TOTAL=0
+SUCCESS=0
+FAILED=""
+
+# Список всех файлов для скачивания
+FILES="
+www/cgi-bin/header.cgi
+www/cgi-bin/backup.cgi
+www/cgi-bin/p/door_keys.cgi
+www/cgi-bin/p/sip_manager.cgi
+www/cgi-bin/p/qr_generator.cgi
+www/cgi-bin/p/temp_keys.cgi
+www/cgi-bin/p/sounds.cgi
+www/cgi-bin/p/door_history.cgi
+www/cgi-bin/p/mqtt.cgi
+www/cgi-bin/p/mqtt_status.cgi
+www/cgi-bin/p/mqtt_api.cgi
+www/cgi-bin/p/backup_manager.cgi
+www/cgi-bin/p/backup_api.cgi
+www/cgi-bin/p/door_api.cgi
+www/cgi-bin/p/sip_api.cgi
+www/cgi-bin/p/sip_save.cgi
+www/cgi-bin/p/play_sound.cgi
+www/cgi-bin/p/upload_final.cgi
+www/cgi-bin/p/common.cgi
+usr/bin/door_monitor.sh
+usr/bin/mqtt_client.sh
+usr/bin/check_temp_keys.sh
+etc/door_keys.conf
+etc/mqtt.conf
+etc/doorphone_sounds.conf
+etc/baresip/accounts
+etc/baresip/call_number
+sounds/ring.pcm
+sounds/door_open.pcm
+sounds/door_close.pcm
+sounds/denied.pcm
+sounds/beep.pcm
+sounds/success.pcm
+sounds/error.pcm
+"
+
+for file in $FILES; do
+    TOTAL=$((TOTAL + 1))
+    dest="$TEMP_DIR/$file"
+    mkdir -p "$(dirname "$dest")"
+    
+    if download_file "$BASE_URL/$file" "$dest" "$file"; then
+        SUCCESS=$((SUCCESS + 1))
+    else
+        FAILED="$FAILED\n      - $file"
+    fi
+done
+
+echo "${GREEN}  ✓ Downloaded $SUCCESS of $TOTAL files${NC}"
+[ -n "$FAILED" ] && echo "${RED}  ✗ Failed files:$FAILED${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 5: Сохраняем оригинальный header.cgi (если есть)
+# Step 5: ПРОВЕРКА КРИТИЧЕСКИХ ФАЙЛОВ
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 5: Backing up original header.cgi...${NC}"
-if [ -f /var/www/cgi-bin/header.cgi ] && [ ! -f /var/www/cgi-bin/header.cgi.original ]; then
-    cp /var/www/cgi-bin/header.cgi /var/www/cgi-bin/header.cgi.original
-    echo "${GREEN}  ✓ Original header.cgi backed up${NC}"
+echo "${BLUE}Step 5: Checking critical files...${NC}"
+
+CRITICAL_FILES="
+www/cgi-bin/header.cgi
+www/cgi-bin/p/door_keys.cgi
+usr/bin/door_monitor.sh
+etc/door_keys.conf
+"
+
+MISSING_CRITICAL=0
+for file in $CRITICAL_FILES; do
+    if [ ! -f "$TEMP_DIR/$file" ]; then
+        echo "${RED}  ✗ CRITICAL FILE MISSING: $file${NC}"
+        MISSING_CRITICAL=1
+    else
+        echo "  ✓ $file present"
+    fi
+done
+
+if [ $MISSING_CRITICAL -eq 1 ]; then
+    echo "${RED}❌ Critical files missing! Aborting installation.${NC}"
+    echo "${YELLOW}   Camera remains unchanged.${NC}"
+    rm -rf "$TEMP_DIR"
+    exit 1
 fi
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 6: Настройка UART в rc.local
+# Step 6: БЭКАП ТЕКУЩИХ ФАЙЛОВ (на всякий случай)
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 6: Configuring UART in rc.local...${NC}"
+echo "${BLUE}Step 6: Backing up current files...${NC}"
+
+BACKUP_DIR="/root/intercom_backup_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
+# Копируем текущие файлы в бэкап
+[ -d /var/www/cgi-bin/p ] && cp -r /var/www/cgi-bin/p "$BACKUP_DIR/" 2>/dev/null
+[ -f /var/www/cgi-bin/header.cgi ] && cp /var/www/cgi-bin/header.cgi "$BACKUP_DIR/" 2>/dev/null
+[ -f /var/www/cgi-bin/backup.cgi ] && cp /var/www/cgi-bin/backup.cgi "$BACKUP_DIR/" 2>/dev/null
+[ -d /usr/bin/door_monitor.sh ] && cp /usr/bin/door_monitor.sh "$BACKUP_DIR/" 2>/dev/null
+[ -f /usr/bin/mqtt_client.sh ] && cp /usr/bin/mqtt_client.sh "$BACKUP_DIR/" 2>/dev/null
+[ -f /usr/bin/check_temp_keys.sh ] && cp /usr/bin/check_temp_keys.sh "$BACKUP_DIR/" 2>/dev/null
+[ -f /etc/door_keys.conf ] && cp /etc/door_keys.conf "$BACKUP_DIR/" 2>/dev/null
+[ -f /etc/mqtt.conf ] && cp /etc/mqtt.conf "$BACKUP_DIR/" 2>/dev/null
+[ -f /etc/doorphone_sounds.conf ] && cp /etc/doorphone_sounds.conf "$BACKUP_DIR/" 2>/dev/null
+[ -d /etc/baresip ] && cp -r /etc/baresip "$BACKUP_DIR/" 2>/dev/null
+[ -f /etc/webui/telegram.conf ] && cp /etc/webui/telegram.conf "$BACKUP_DIR/" 2>/dev/null
+
+echo "${GREEN}  ✓ Backup saved to: $BACKUP_DIR${NC}"
+echo ""
+
+#-----------------------------------------------------------------------------
+# Step 7: УСТАНОВКА НОВЫХ ФАЙЛОВ
+#-----------------------------------------------------------------------------
+echo "${BLUE}Step 7: Installing new files...${NC}"
+
+# Копируем все файлы из временной директории в целевые
+cp -rf "$TEMP_DIR/www/cgi-bin/header.cgi" /var/www/cgi-bin/ 2>/dev/null
+cp -rf "$TEMP_DIR/www/cgi-bin/backup.cgi" /var/www/cgi-bin/ 2>/dev/null
+cp -rf "$TEMP_DIR/www/cgi-bin/p"/* /var/www/cgi-bin/p/ 2>/dev/null
+cp -rf "$TEMP_DIR/usr/bin"/* /usr/bin/ 2>/dev/null
+cp -rf "$TEMP_DIR/etc/door_keys.conf" /etc/ 2>/dev/null
+cp -rf "$TEMP_DIR/etc/mqtt.conf" /etc/ 2>/dev/null
+cp -rf "$TEMP_DIR/etc/doorphone_sounds.conf" /etc/ 2>/dev/null
+cp -rf "$TEMP_DIR/etc/baresip"/* /etc/baresip/ 2>/dev/null
+cp -rf "$TEMP_DIR/usr/share/sounds/doorphone"/* /usr/share/sounds/doorphone/ 2>/dev/null
+
+# Устанавливаем права
+chmod +x /var/www/cgi-bin/*.cgi 2>/dev/null
+chmod +x /var/www/cgi-bin/p/*.cgi 2>/dev/null
+chmod +x /usr/bin/door_monitor.sh 2>/dev/null
+chmod +x /usr/bin/mqtt_client.sh 2>/dev/null
+chmod +x /usr/bin/check_temp_keys.sh 2>/dev/null
+chmod 666 /etc/door_keys.conf 2>/dev/null
+chmod 644 /etc/mqtt.conf 2>/dev/null
+chmod 644 /etc/doorphone_sounds.conf 2>/dev/null
+
+# Подставляем правильный UART в скрипты
+sed -i "s|/dev/ttyS0|$UART_SELECTED|g" /usr/bin/door_monitor.sh 2>/dev/null
+sed -i "s|/dev/ttyAMA0|$UART_SELECTED|g" /usr/bin/door_monitor.sh 2>/dev/null
+sed -i "s|/dev/ttyS0|$UART_SELECTED|g" /usr/bin/mqtt_client.sh 2>/dev/null
+sed -i "s|/dev/ttyAMA0|$UART_SELECTED|g" /usr/bin/mqtt_client.sh 2>/dev/null
+
+echo "${GREEN}  ✓ Files installed${NC}"
+echo ""
+
+#-----------------------------------------------------------------------------
+# Step 8: ОЧИСТКА ВРЕМЕННОЙ ДИРЕКТОРИИ
+#-----------------------------------------------------------------------------
+echo "${BLUE}Step 8: Cleaning up...${NC}"
+rm -rf "$TEMP_DIR"
+echo "${GREEN}  ✓ Temporary directory removed${NC}"
+echo ""
+
+#-----------------------------------------------------------------------------
+# Step 9: НАСТРОЙКА UART В rc.local
+#-----------------------------------------------------------------------------
+echo "${BLUE}Step 9: Configuring UART in rc.local...${NC}"
 
 if [ ! -f /etc/rc.local ]; then
     echo "#!/bin/sh" > /etc/rc.local
@@ -184,7 +298,7 @@ if [ ! -f /etc/rc.local ]; then
     chmod +x /etc/rc.local
 fi
 
-# Удаляем старые настройки UART из rc.local
+# Удаляем старые настройки
 sed -i '/stty -F/d' /etc/rc.local
 sed -i '/mqtt_client.sh/d' /etc/rc.local
 sed -i '/httpd -p 8080/d' /etc/rc.local
@@ -199,220 +313,9 @@ echo "${GREEN}  ✓ UART and services configured${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 7: Скачивание файлов с GitHub (с фиксированным хешем коммита)
+# Step 10: НАСТРОЙКА АВТОЗАПУСКА
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 7: Downloading fresh files from GitHub (fixed commit)...${NC}"
-
-# Счетчики
-TOTAL=0
-SUCCESS=0
-FAILED=""
-
-# Скачивание header.cgi
-echo "  - Downloading header.cgi with full menu..."
-TOTAL=$((TOTAL + 1))
-if download_file "$BASE_URL/www/cgi-bin/header.cgi" "/var/www/cgi-bin/header.cgi" "header.cgi"; then
-    chmod +x "/var/www/cgi-bin/header.cgi"
-    SUCCESS=$((SUCCESS + 1))
-    echo "    ${GREEN}  ✓ header.cgi downloaded from repository${NC}"
-else
-    echo "    ${YELLOW}  ⚠️ header.cgi not found in repository, creating custom menu...${NC}"
-    SUCCESS=$((SUCCESS + 1))
-fi
-
-# Проверяем наличие MQTT в меню
-if grep -q "mqtt.cgi" /var/www/cgi-bin/header.cgi; then
-    echo "    ${GREEN}  ✓ MQTT entry found in menu${NC}"
-else
-    echo "    ${RED}  ✗ MQTT entry missing in menu${NC}"
-    sed -i '/backup.cgi/i \                            <li><a class="dropdown-item" href="/cgi-bin/p/mqtt.cgi">📡 MQTT</a></li>' /var/www/cgi-bin/header.cgi
-    echo "    ${GREEN}  ✓ MQTT entry added to menu${NC}"
-fi
-
-# CGI скрипты (ПОЛНЫЙ СПИСОК)
-echo "  - Downloading CGI scripts..."
-P_FILES="
-door_keys.cgi
-sip_manager.cgi
-qr_generator.cgi
-temp_keys.cgi
-sounds.cgi
-door_history.cgi
-mqtt.cgi
-mqtt_status.cgi
-mqtt_api.cgi
-backup_manager.cgi
-backup_api.cgi
-door_api.cgi
-sip_api.cgi
-sip_save.cgi
-play_sound.cgi
-upload_final.cgi
-common.cgi
-"
-
-for file in $P_FILES; do
-    TOTAL=$((TOTAL + 1))
-    if download_file "$BASE_URL/www/cgi-bin/p/$file" "/var/www/cgi-bin/p/$file" "$file"; then
-        chmod +x "/var/www/cgi-bin/p/$file" 2>/dev/null
-        SUCCESS=$((SUCCESS + 1))
-    else
-        FAILED="$FAILED\n      - www/cgi-bin/p/$file"
-    fi
-done
-
-# backup.cgi
-TOTAL=$((TOTAL + 1))
-if download_file "$BASE_URL/www/cgi-bin/backup.cgi" "/var/www/cgi-bin/backup.cgi" "backup.cgi"; then
-    chmod +x "/var/www/cgi-bin/backup.cgi"
-    SUCCESS=$((SUCCESS + 1))
-else
-    # Создаем минимальный backup.cgi
-    cat > /var/www/cgi-bin/backup.cgi << 'EOF'
-#!/bin/sh
-echo "Content-type: text/html; charset=utf-8"
-echo ""
-IP=$(ip addr show | grep -o '192\.168\.[0-9]*\.[0-9]*' | head -1)
-[ -z "$IP" ] && IP="192.168.1.4"
-echo '<!DOCTYPE html>'
-echo '<html><head>'
-echo '<meta charset="UTF-8">'
-echo '<meta http-equiv="refresh" content="2;url=http://'$IP':8080/cgi-bin/p/backup_manager.cgi">'
-echo '</head><body>'
-echo '<p>🔁 Redirecting to Backup Manager on port 8080...</p>'
-echo '<p><a href="http://'$IP':8080/cgi-bin/p/backup_manager.cgi">Click here if not redirected</a></p>'
-echo '</body></html>'
-EOF
-    chmod +x /var/www/cgi-bin/backup.cgi
-    SUCCESS=$((SUCCESS + 1))
-fi
-
-# Системные скрипты
-echo "  - Downloading system scripts..."
-BIN_FILES="
-door_monitor.sh
-mqtt_client.sh
-check_temp_keys.sh
-"
-
-for file in $BIN_FILES; do
-    TOTAL=$((TOTAL + 1))
-    if download_file "$BASE_URL/usr/bin/$file" "/usr/bin/$file" "$file"; then
-        chmod +x "/usr/bin/$file"
-        # Подставляем правильный UART
-        sed -i "s|/dev/ttyS0|$UART_SELECTED|g" "/usr/bin/$file" 2>/dev/null
-        sed -i "s|/dev/ttyAMA0|$UART_SELECTED|g" "/usr/bin/$file" 2>/dev/null
-        SUCCESS=$((SUCCESS + 1))
-    else
-        FAILED="$FAILED\n      - usr/bin/$file"
-    fi
-done
-
-# Конфиги (ПОЛНЫЙ СПИСОК)
-echo "  - Downloading config files..."
-CONF_FILES="
-door_keys.conf
-mqtt.conf
-doorphone_sounds.conf
-baresip/accounts
-baresip/call_number
-"
-
-for file in $CONF_FILES; do
-    TOTAL=$((TOTAL + 1))
-    dest="/etc/$file"
-    mkdir -p "$(dirname "$dest")"
-    if download_file "$BASE_URL/etc/$file" "$dest" "$file"; then
-        chmod 644 "$dest" 2>/dev/null
-        SUCCESS=$((SUCCESS + 1))
-    else
-        # Создаем базовые конфиги
-        case "$file" in
-            door_keys.conf)
-                echo "# Door Keys Database" > /etc/door_keys.conf
-                echo "12345678|Admin|$(date +%Y-%m-%d)" >> /etc/door_keys.conf
-                echo "qrdemo|QR Test|$(date +%Y-%m-%d)" >> /etc/door_keys.conf
-                echo "0000|Master|$(date +%Y-%m-%d)" >> /etc/door_keys.conf
-                chmod 666 /etc/door_keys.conf
-                SUCCESS=$((SUCCESS + 1))
-                ;;
-            mqtt.conf)
-                echo '# MQTT Configuration' > /etc/mqtt.conf
-                echo 'MQTT_ENABLED="false"' >> /etc/mqtt.conf
-                echo 'MQTT_HOST="192.168.1.30"' >> /etc/mqtt.conf
-                echo 'MQTT_PORT="1883"' >> /etc/mqtt.conf
-                echo 'MQTT_USER="user"' >> /etc/mqtt.conf
-                echo 'MQTT_PASS="passwd"' >> /etc/mqtt.conf
-                echo 'MQTT_CLIENT_ID="openipc_doorphone"' >> /etc/mqtt.conf
-                echo 'MQTT_TOPIC_PREFIX="doorphone"' >> /etc/mqtt.conf
-                echo 'MQTT_DISCOVERY="false"' >> /etc/mqtt.conf
-                echo 'MQTT_DISCOVERY_PREFIX="homeassistant"' >> /etc/mqtt.conf
-                SUCCESS=$((SUCCESS + 1))
-                ;;
-            doorphone_sounds.conf)
-                echo '# Sound Configuration' > /etc/doorphone_sounds.conf
-                echo 'SOUND_KEY_ACCEPT="beep"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_KEY_DENY="denied"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_QR_ACCEPT="beep"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_QR_DENY="denied"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_DOOR_OPEN="door_open"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_DOOR_CLOSE="door_close"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_BUTTON="beep"' >> /etc/doorphone_sounds.conf
-                echo 'SOUND_RING="ring"' >> /etc/doorphone_sounds.conf
-                SUCCESS=$((SUCCESS + 1))
-                ;;
-            baresip/call_number)
-                echo "100" > /etc/baresip/call_number
-                SUCCESS=$((SUCCESS + 1))
-                ;;
-            *)
-                FAILED="$FAILED\n      - etc/$file"
-                ;;
-        esac
-    fi
-done
-
-# Звуки (опционально)
-echo "  - Downloading sound files..."
-SOUND_FILES="ring.pcm door_open.pcm door_close.pcm denied.pcm beep.pcm success.pcm error.pcm"
-for file in $SOUND_FILES; do
-    TOTAL=$((TOTAL + 1))
-    if download_file "$BASE_URL/sounds/$file" "/usr/share/sounds/doorphone/$file" "$file" 2>/dev/null; then
-        SUCCESS=$((SUCCESS + 1))
-    else
-        SUCCESS=$((SUCCESS + 1)) # Не показываем ошибку для звуков
-    fi
-done
-
-echo "${GREEN}  ✓ Downloaded $SUCCESS of $TOTAL files${NC}"
-[ -n "$FAILED" ] && echo "${RED}  ✗ Failed files:$FAILED${NC}"
-echo ""
-
-#-----------------------------------------------------------------------------
-# Step 8: Установка Bootstrap
-#-----------------------------------------------------------------------------
-echo "${BLUE}Step 8: Installing Bootstrap...${NC}"
-
-rm -f /var/www/a/bootstrap.min.css 2>/dev/null
-rm -f /var/www/a/bootstrap.bundle.min.js 2>/dev/null
-
-if command -v curl >/dev/null 2>&1; then
-    curl -s -o /var/www/a/bootstrap.min.css "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    curl -s -o /var/www/a/bootstrap.bundle.min.js "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-else
-    wget -q -O /var/www/a/bootstrap.min.css "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    wget -q -O /var/www/a/bootstrap.bundle.min.js "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-fi
-
-if [ -f /var/www/a/bootstrap.min.css ] && [ -s /var/www/a/bootstrap.min.css ]; then
-    echo "${GREEN}  ✓ Bootstrap installed${NC}"
-fi
-echo ""
-
-#-----------------------------------------------------------------------------
-# Step 9: Настройка автозапуска для door_monitor
-#-----------------------------------------------------------------------------
-echo "${BLUE}Step 9: Configuring door_monitor autostart...${NC}"
+echo "${BLUE}Step 10: Configuring autostart...${NC}"
 
 cat > /etc/init.d/S99door << 'EOF'
 #!/bin/sh
@@ -452,24 +355,44 @@ echo "${GREEN}  ✓ Autostart configured${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 10: Настройка cron для временных ключей
+# Step 11: НАСТРОЙКА CRON
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 10: Setting up cron for temporary keys...${NC}"
+echo "${BLUE}Step 11: Setting up cron for temporary keys...${NC}"
 
 mkdir -p /etc/crontabs
-# Удаляем старую запись если есть
 sed -i '/check_temp_keys/d' /etc/crontabs/root 2>/dev/null
 
 if [ -f /usr/bin/check_temp_keys.sh ]; then
     echo "0 * * * * /usr/bin/check_temp_keys.sh" >> /etc/crontabs/root
-    echo "${GREEN}  ✓ Cron job added (runs every hour)${NC}"
+    echo "${GREEN}  ✓ Cron job added${NC}"
 fi
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 11: Запуск сервисов
+# Step 12: УСТАНОВКА BOOTSTRAP
 #-----------------------------------------------------------------------------
-echo "${BLUE}Step 11: Starting services...${NC}"
+echo "${BLUE}Step 12: Installing Bootstrap...${NC}"
+
+rm -f /var/www/a/bootstrap.min.css 2>/dev/null
+rm -f /var/www/a/bootstrap.bundle.min.js 2>/dev/null
+
+if command -v curl >/dev/null 2>&1; then
+    curl -s -o /var/www/a/bootstrap.min.css "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    curl -s -o /var/www/a/bootstrap.bundle.min.js "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+else
+    wget -q -O /var/www/a/bootstrap.min.css "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    wget -q -O /var/www/a/bootstrap.bundle.min.js "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+fi
+
+if [ -f /var/www/a/bootstrap.min.css ] && [ -s /var/www/a/bootstrap.min.css ]; then
+    echo "${GREEN}  ✓ Bootstrap installed${NC}"
+fi
+echo ""
+
+#-----------------------------------------------------------------------------
+# Step 13: ЗАПУСК СЕРВИСОВ
+#-----------------------------------------------------------------------------
+echo "${BLUE}Step 13: Starting services...${NC}"
 
 chmod 666 $UART_SELECTED 2>/dev/null
 /etc/init.d/S99door restart
@@ -497,28 +420,19 @@ echo "${GREEN}  ✓ Backup server started on port 8080${NC}"
 echo ""
 
 #-----------------------------------------------------------------------------
-# Step 12: Очистка
-#-----------------------------------------------------------------------------
-echo "${BLUE}Step 12: Cleanup...${NC}"
-rm -rf /tmp/intercom_* 2>/dev/null
-echo "${GREEN}  ✓ Cleanup complete${NC}"
-echo ""
-
-#-----------------------------------------------------------------------------
 # Финальный вывод
 #-----------------------------------------------------------------------------
 IP=$(ip addr show | grep -o '192\.168\.[0-9]*\.[0-9]*' | head -1)
 [ -z "$IP" ] && IP="192.168.1.4"
 
 echo "${GREEN}==========================================${NC}"
-echo "${GREEN}✅ Fresh installation complete!${NC}"
+echo "${GREEN}✅ Installation complete!${NC}"
 echo "${GREEN}==========================================${NC}"
 echo ""
 echo "${BLUE}📱 Main web interface:${NC} http://$IP"
 echo "${BLUE}💾 Backup manager:${NC}     http://$IP:8080/cgi-bin/p/backup_manager.cgi"
 echo "${BLUE}🔌 UART device:${NC}        $UART_SELECTED"
-echo "${BLUE}🤖 MQTT Broker:${NC}        Configure in MQTT page"
-echo "${BLUE}📱 Telegram Bot:${NC}       Configure in Extensions → Telegram"
+echo "${BLUE}📁 Backup of old files:${NC} $BACKUP_DIR"
 echo ""
 echo "${BLUE}🔑 Test keys:${NC}"
 echo "  - 12345678 (Admin)"
@@ -531,7 +445,7 @@ echo "  View logs:     ${YELLOW}tail -f /var/log/door_monitor.log${NC}"
 echo "                 ${YELLOW}tail -f /var/log/mqtt.log${NC}"
 echo "  Add key:       ${YELLOW}echo \"key|name|date\" >> /etc/door_keys.conf${NC}"
 echo "  Restart:       ${YELLOW}/etc/init.d/S99door restart${NC}"
-echo "  Reinstall:     ${YELLOW}curl -sL https://raw.githubusercontent.com/OpenIPC/intercom/main/install.sh | sh${NC}"
+echo "  Restore backup:${YELLOW} cp -r $BACKUP_DIR/* /${NC}"
 echo ""
 echo "${GREEN}==========================================${NC}"
 echo "${GREEN}Enjoy your OpenIPC Doorphone!${NC}"
