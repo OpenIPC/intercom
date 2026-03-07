@@ -2,14 +2,14 @@
 echo "Content-type: text/html; charset=utf-8"
 echo ""
 
-# Получаем параметры из QUERY_STRING (работает всегда!)
+# Получаем параметры из QUERY_STRING
 USER=$(echo "$QUERY_STRING" | sed -n 's/.*user=\([^&]*\).*/\1/p')
 SERVER=$(echo "$QUERY_STRING" | sed -n 's/.*server=\([^&]*\).*/\1/p')
 PASS=$(echo "$QUERY_STRING" | sed -n 's/.*pass=\([^&]*\).*/\1/p')
 TRANSPORT=$(echo "$QUERY_STRING" | sed -n 's/.*transport=\([^&]*\).*/\1/p')
 AUTO=$(echo "$QUERY_STRING" | sed -n 's/.*auto=\([^&]*\).*/\1/p')
 
-# Декодируем URL (простая замена %xx)
+# Декодируем URL
 urldecode() {
     echo -e "$(echo "$1" | sed 's/+/ /g;s/%/\\x/g')"
 }
@@ -48,6 +48,7 @@ if [ -n "$USER" ] && [ -n "$SERVER" ] && [ -n "$PASS" ]; then
     fi
     
     # Сохраняем
+    mkdir -p /etc/baresip
     {
         echo "# SIP account for doorphone"
         echo "$ACCOUNT"
@@ -65,7 +66,6 @@ else
     echo "            <p>USER: $USER</p>"
     echo "            <p>SERVER: $SERVER</p>"
     echo "            <p>PASS: ${#PASS} символов</p>"
-    echo "            <p>QUERY_STRING: $QUERY_STRING</p>"
 fi
 
 echo "            <p><a href='/cgi-bin/p/sip_manager.cgi' class='btn'>Вернуться к SIP Manager</a></p>"

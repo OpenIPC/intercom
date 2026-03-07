@@ -8,182 +8,294 @@ cat << 'EOFH'
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Управление бэкапами</title>
+    <title>Backup Manager</title>
     <link rel="stylesheet" href="/a/bootstrap.min.css">
     <style>
-        body { background: #f5f5f5; padding: 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-        .btn-primary { background: #1976d2; color: white; }
-        .btn-success { background: #4caf50; color: white; }
-        .btn-danger { background: #f44336; color: white; }
-        .btn-warning { background: #ff9800; color: white; }
-        .btn-info { background: #17a2b8; color: white; }
-        .btn-secondary { background: #6c757d; color: white; }
-        
-        .backup-list { max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; }
-        .backup-item { 
-            padding: 15px; 
-            border-bottom: 1px solid #eee; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            transition: background-color 0.2s;
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .backup-item:hover { background: #f8f9fa; }
-        .backup-item:last-child { border-bottom: none; }
-        
-        .status { 
-            padding: 15px; 
-            border-radius: 4px; 
-            margin: 15px 0;
+        .navbar-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar-brand {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .navbar-brand:hover {
+            color: rgba(255,255,255,0.9);
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .navbar-item {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .navbar-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        .navbar-item.active {
+            background: rgba(255,255,255,0.3);
+            font-weight: bold;
+        }
+        .home-button {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .home-button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+        body {
+            background: #f5f5f5;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .card:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102,126,234,0.3);
+        }
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+        .btn-success:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(76,175,80,0.3);
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #da190b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(244,67,54,0.3);
+        }
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        .btn-info:hover {
+            background: #138496;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(23,162,184,0.3);
+        }
+        .btn-warning {
+            background: #ff9800;
+            color: white;
+        }
+        .btn-warning:hover {
+            background: #e68900;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255,152,0,0.3);
+        }
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
             font-weight: 500;
         }
-        .status.success { 
-            background: #d4edda; 
-            color: #155724; 
-            border-left: 4px solid #28a745;
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            box-sizing: border-box;
         }
-        .status.error { 
-            background: #f8d7da; 
-            color: #721c24; 
-            border-left: 4px solid #dc3545;
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
         }
-        .status.info { 
-            background: #d1ecf1; 
-            color: #0c5460; 
-            border-left: 4px solid #17a2b8;
-        }
-        .status.warning { 
-            background: #fff3cd; 
-            color: #856404; 
-            border-left: 4px solid #ffc107;
-        }
-        
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .storage-info {
-            background: #e9ecef;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 15px 0;
-            font-family: monospace;
-        }
-        
         .storage-option {
             display: flex;
             align-items: center;
             padding: 15px;
             margin: 10px 0;
-            border: 2px solid #dee2e6;
+            border: 2px solid #e9ecef;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.2s;
         }
-        
         .storage-option:hover {
-            border-color: #1976d2;
+            border-color: #667eea;
             background: #f8f9fa;
         }
-        
         .storage-option.selected {
-            border-color: #1976d2;
+            border-color: #667eea;
             background: #e3f2fd;
         }
-        
         .storage-option.disabled {
             opacity: 0.6;
             cursor: not-allowed;
             background: #f8f9fa;
         }
-        
-        .storage-option.disabled:hover {
-            border-color: #dee2e6;
-        }
-        
-        .storage-option input[type="radio"] {
-            margin-right: 15px;
-            transform: scale(1.2);
-        }
-        
         .storage-icon {
             font-size: 24px;
             margin-right: 15px;
         }
-        
         .storage-details {
             flex: 1;
         }
-        
         .storage-name {
             font-weight: bold;
             font-size: 16px;
         }
-        
         .storage-path {
             color: #666;
             font-size: 12px;
         }
-        
         .storage-space {
             color: #28a745;
             font-size: 12px;
         }
-        
-        .storage-error {
-            color: #dc3545;
-            font-size: 12px;
+        .backup-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-top: 20px;
         }
-        
-        .button-group {
+        .backup-item {
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-bottom: 20px;
+            justify-content: space-between;
+            align-items: center;
         }
-        
-        .file-size {
+        .backup-item:last-child {
+            border-bottom: none;
+        }
+        .backup-item:hover {
+            background: #f8f9fa;
+        }
+        .backup-info {
+            flex: 1;
+        }
+        .backup-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        .backup-meta {
             font-size: 12px;
-            color: #6c757d;
+            color: #666;
         }
-        
-        .backup-date {
-            font-weight: bold;
-            color: #495057;
-        }
-        
         .component-selector {
             background: #f8f9fa;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 8px;
             margin: 15px 0;
         }
-        
         .component-item {
-            padding: 8px;
-            border-bottom: 1px solid #dee2e6;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        
-        .component-item:last-child {
-            border-bottom: none;
+        .component-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
         }
-        
+        .component-item label {
+            cursor: pointer;
+            flex: 1;
+        }
         .upload-area {
-            border: 2px dashed #1976d2;
+            border: 2px dashed #667eea;
             border-radius: 8px;
             padding: 30px;
             text-align: center;
@@ -192,139 +304,174 @@ cat << 'EOFH'
             transition: all 0.3s;
             margin: 20px 0;
         }
-        
         .upload-area:hover {
             background: #e3f2fd;
-            border-color: #0d47a1;
+            border-color: #5a67d8;
         }
-        
         .upload-area.dragover {
             background: #bbdefb;
-            border-color: #0d47a1;
+            border-color: #4c51bf;
         }
-        
-        .upload-progress {
+        .progress {
             margin-top: 15px;
             display: none;
         }
-        
         .progress-bar {
             width: 100%;
             height: 20px;
-            background: #f0f0f0;
+            background: #e9ecef;
             border-radius: 10px;
             overflow: hidden;
         }
-        
         .progress-fill {
             height: 100%;
-            background: #1976d2;
+            background: linear-gradient(90deg, #667eea, #764ba2);
             width: 0%;
             transition: width 0.3s;
+        }
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 8px;
+            display: none;
+            z-index: 1000;
+            border-left: 4px solid;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .notification.success {
+            border-left-color: #4caf50;
+        }
+        .notification.error {
+            border-left-color: #f44336;
+        }
+        @media (max-width: 768px) {
+            .navbar-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .navbar-menu {
+                width: 100%;
+                justify-content: center;
+            }
+            .backup-item {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="mb-4">💾 Управление бэкапами</h1>
-        
-        <!-- Кнопки управления -->
-        <div class="card">
-            <h3 class="mb-3">Действия</h3>
-            <div class="button-group">
-                <button class="btn btn-primary" onclick="createBackup()">
-                    <span class="btn-icon">📀</span> Создать бэкап
-                </button>
-                <button class="btn btn-info" onclick="scanStorage()">
-                    <span class="btn-icon">🔍</span> Сканировать устройства
-                </button>
-                <button class="btn btn-secondary" onclick="loadBackups()">
-                    <span class="btn-icon">🔄</span> Обновить список
-                </button>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="/cgi-bin/status.cgi" class="navbar-brand">OpenIPC Doorphone</a>
+            <div class="navbar-menu">
+                <a href="/cgi-bin/status.cgi" class="navbar-item">Home</a>
+                <a href="/cgi-bin/p/door_keys.cgi" class="navbar-item">Keys</a>
+                <a href="/cgi-bin/p/sip_manager.cgi" class="navbar-item">SIP</a>
+                <a href="/cgi-bin/p/qr_generator.cgi" class="navbar-item">QR</a>
+                <a href="/cgi-bin/p/temp_keys.cgi" class="navbar-item">Temporary</a>
+                <a href="/cgi-bin/p/sounds.cgi" class="navbar-item">Sounds</a>
+                <a href="/cgi-bin/p/door_history.cgi" class="navbar-item">History</a>
+                <a href="/cgi-bin/p/mqtt.cgi" class="navbar-item">MQTT</a>
+                <a href="/cgi-bin/backup.cgi" class="navbar-item active">Backups</a>
             </div>
-            <div id="actionStatus" class="status" style="display: none;"></div>
+            <a href="/cgi-bin/status.cgi" class="home-button">← Back to Home</a>
         </div>
+    </nav>
 
-        <!-- Выбор места хранения -->
+    <div class="container">
+        <div id="notification" class="notification"></div>
+        
+        <h1>Backup Manager</h1>
+
+        <!-- Storage Selection -->
         <div class="card">
-            <h3 class="mb-3">💿 Место хранения бэкапов</h3>
+            <h3>Storage Location</h3>
             <div id="storageOptions" class="storage-options">
-                <div class="text-center py-3">
-                    <div class="loader"></div>
-                    <p class="mt-2 text-muted">Поиск доступных устройств...</p>
-                </div>
+                <div class="text-center py-3">Loading storage devices...</div>
             </div>
             <div id="selectedStorageInfo" class="storage-info mt-3" style="display: none;"></div>
         </div>
 
-        <!-- Загрузка бэкапа -->
+        <!-- Component Selection -->
         <div class="card">
-            <h3 class="mb-3">📤 Загрузить бэкап</h3>
-            <div class="upload-area" id="uploadArea">
-                <span class="storage-icon">📁</span>
-                <p>Нажмите или перетащите файл бэкапа сюда</p>
-                <p class="text-muted small">Поддерживаются форматы .tar и .tar.gz</p>
-                <input type="file" id="fileInput" style="display: none;" accept=".tar,.tar.gz,.tgz">
-            </div>
-            <div id="uploadProgress" class="upload-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <p class="text-center mt-2" id="progressText">Загрузка...</p>
-            </div>
-            <div id="uploadStatus" class="status" style="display: none;"></div>
-        </div>
-
-        <!-- Выбор компонентов для бэкапа -->
-        <div class="card">
-            <h3 class="mb-3">📦 Выбор компонентов для бэкапа</h3>
+            <h3>Backup Components</h3>
             <div class="component-selector">
                 <div class="component-item">
-                    <input type="checkbox" id="backup_cgi" checked> 
-                    <label for="backup_cgi"><strong>CGI скрипты</strong> - все наши страницы (/var/www/cgi-bin/p/*.cgi)</label>
+                    <input type="checkbox" id="backup_cgi" checked>
+                    <label for="backup_cgi"><strong>CGI Scripts</strong> - All web interface files (/var/www/cgi-bin/p/*.cgi)</label>
                 </div>
                 <div class="component-item">
-                    <input type="checkbox" id="backup_baresip" checked> 
-                    <label for="backup_baresip"><strong>SIP конфиги</strong> - аккаунты и настройки (/etc/baresip/)</label>
+                    <input type="checkbox" id="backup_baresip" checked>
+                    <label for="backup_baresip"><strong>SIP Configuration</strong> - SIP accounts and settings (/etc/baresip/)</label>
                 </div>
                 <div class="component-item">
-                    <input type="checkbox" id="backup_keys" checked> 
-                    <label for="backup_keys"><strong>База ключей</strong> - все RFID и QR ключи (/etc/door_keys.conf)</label>
+                    <input type="checkbox" id="backup_keys" checked>
+                    <label for="backup_keys"><strong>Key Database</strong> - All RFID and QR keys (/etc/door_keys.conf)</label>
                 </div>
                 <div class="component-item">
-                    <input type="checkbox" id="backup_scripts" checked> 
-                    <label for="backup_scripts"><strong>Скрипты монитора</strong> - door_monitor.sh, start_baresip.sh</label>
+                    <input type="checkbox" id="backup_mqtt" checked>
+                    <label for="backup_mqtt"><strong>MQTT Configuration</strong> - MQTT broker settings (/etc/mqtt.conf)</label>
                 </div>
                 <div class="component-item">
-                    <input type="checkbox" id="backup_init" checked> 
-                    <label for="backup_init"><strong>Init скрипты</strong> - автозапуск (/etc/init.d/S99door)</label>
+                    <input type="checkbox" id="backup_scripts" checked>
+                    <label for="backup_scripts"><strong>System Scripts</strong> - door_monitor.sh, mqtt_client.sh, start scripts</label>
                 </div>
                 <div class="component-item">
-                    <input type="checkbox" id="backup_majestic" checked> 
-                    <label for="backup_majestic"><strong>Majestic конфиг</strong> - настройки камеры (/etc/majestic.yaml)</label>
+                    <input type="checkbox" id="backup_init" checked>
+                    <label for="backup_init"><strong>Init Scripts</strong> - Autostart scripts (/etc/init.d/S99door)</label>
                 </div>
                 <div class="component-item">
-                    <input type="checkbox" id="backup_uart" checked> 
-                    <label for="backup_uart"><strong>UART настройки</strong> - rc.local и параметры последовательного порта</label>
+                    <input type="checkbox" id="backup_majestic" checked>
+                    <label for="backup_majestic"><strong>Majestic Config</strong> - Camera settings (/etc/majestic.yaml)</label>
+                </div>
+                <div class="component-item">
+                    <input type="checkbox" id="backup_uart" checked>
+                    <label for="backup_uart"><strong>UART Settings</strong> - Serial port configuration</label>
                 </div>
             </div>
-            <div class="button-group">
-                <button class="btn btn-sm btn-success" onclick="selectAll(true)">Выбрать все</button>
-                <button class="btn btn-sm btn-warning" onclick="selectAll(false)">Снять все</button>
+            <div>
+                <button class="btn btn-sm btn-info" onclick="selectAll(true)">Select All</button>
+                <button class="btn btn-sm btn-warning" onclick="selectAll(false)">Deselect All</button>
             </div>
         </div>
 
-        <!-- Список бэкапов -->
+        <!-- Actions -->
         <div class="card">
-            <h3 class="mb-3">📋 Существующие бэкапы</h3>
-            <div id="backupList" class="backup-list">
-                <div class="text-center py-4">
-                    <div class="loader"></div>
-                    <p class="mt-2 text-muted">Загрузка списка бэкапов...</p>
+            <h3>Actions</h3>
+            <button class="btn btn-primary" onclick="createBackup()">Create Backup</button>
+            <button class="btn btn-info" onclick="scanStorage()">Scan Storage</button>
+            <button class="btn btn-secondary" onclick="loadBackups()">Refresh List</button>
+        </div>
+
+        <!-- Upload Backup -->
+        <div class="card">
+            <h3>Upload Backup</h3>
+            <div class="upload-area" id="uploadArea">
+                <div style="font-size: 48px; margin-bottom: 10px;">📤</div>
+                <p>Click or drag backup file here</p>
+                <p class="text-muted small">Supported formats: .tar, .tar.gz</p>
+                <input type="file" id="fileInput" style="display: none;" accept=".tar,.tar.gz,.tgz">
+            </div>
+            <div id="uploadProgress" class="progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="uploadProgressFill"></div>
                 </div>
+                <p class="text-center mt-2" id="progressText">Uploading...</p>
+            </div>
+        </div>
+
+        <!-- Backup List -->
+        <div class="card">
+            <h3>Existing Backups</h3>
+            <div id="backupList" class="backup-list">
+                <div class="text-center py-4">Loading backups...</div>
             </div>
             <div class="mt-3 text-muted small">
-                * Хранятся последние 10 бэкапов, старые удаляются автоматически
+                * Last 10 backups are kept, older ones are automatically deleted
             </div>
         </div>
     </div>
@@ -335,85 +482,80 @@ cat << 'EOFH'
             cgi: true,
             baresip: true,
             keys: true,
+            mqtt: true,
             scripts: true,
             init: true,
             majestic: true,
             uart: true
         };
-        
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
-        
-        // Настройка drag & drop
-        uploadArea.addEventListener('click', () => fileInput.click());
-        
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) uploadBackup(file);
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files[0]) uploadBackup(e.target.files[0]);
-        });
-        
-        function showStatus(elementId, message, type) {
-            const status = document.getElementById(elementId);
-            status.className = 'status ' + type;
-            status.innerHTML = message;
-            status.style.display = 'block';
-            
-            if (type === 'success') {
-                setTimeout(() => {
-                    status.style.display = 'none';
-                }, 5000);
-            }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.className = 'notification ' + type;
+            notification.innerHTML = message;
+            notification.style.display = 'block';
+            setTimeout(() => notification.style.display = 'none', 3000);
         }
-        
+
         function selectAll(select) {
             document.getElementById('backup_cgi').checked = select;
             document.getElementById('backup_baresip').checked = select;
             document.getElementById('backup_keys').checked = select;
+            document.getElementById('backup_mqtt').checked = select;
             document.getElementById('backup_scripts').checked = select;
             document.getElementById('backup_init').checked = select;
             document.getElementById('backup_majestic').checked = select;
             document.getElementById('backup_uart').checked = select;
             updateComponents();
         }
-        
+
         function updateComponents() {
             currentBackupComponents = {
                 cgi: document.getElementById('backup_cgi').checked,
                 baresip: document.getElementById('backup_baresip').checked,
                 keys: document.getElementById('backup_keys').checked,
+                mqtt: document.getElementById('backup_mqtt').checked,
                 scripts: document.getElementById('backup_scripts').checked,
                 init: document.getElementById('backup_init').checked,
                 majestic: document.getElementById('backup_majestic').checked,
                 uart: document.getElementById('backup_uart').checked
             };
         }
-        
+
         document.getElementById('backup_cgi').addEventListener('change', updateComponents);
         document.getElementById('backup_baresip').addEventListener('change', updateComponents);
         document.getElementById('backup_keys').addEventListener('change', updateComponents);
+        document.getElementById('backup_mqtt').addEventListener('change', updateComponents);
         document.getElementById('backup_scripts').addEventListener('change', updateComponents);
         document.getElementById('backup_init').addEventListener('change', updateComponents);
         document.getElementById('backup_majestic').addEventListener('change', updateComponents);
         document.getElementById('backup_uart').addEventListener('change', updateComponents);
-        
+
+        // Upload area handlers
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) uploadBackup(file);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) uploadBackup(e.target.files[0]);
+        });
+
         function scanStorage() {
             const storageDiv = document.getElementById('storageOptions');
-            storageDiv.innerHTML = '<div class="text-center py-3"><div class="loader"></div><p class="mt-2 text-muted">Поиск устройств...</p></div>';
+            storageDiv.innerHTML = '<div class="text-center py-3">Scanning storage devices...</div>';
             
             fetch('/cgi-bin/p/backup_api.cgi?action=scan_storage')
                 .then(r => r.json())
@@ -424,19 +566,16 @@ cat << 'EOFH'
                             const isSelected = (selectedStorage && selectedStorage.path === device.path) || (index === 0 && device.available && !selectedStorage);
                             const selectedClass = isSelected ? 'selected' : '';
                             const disabledClass = device.available ? '' : 'disabled';
-                            const checked = isSelected ? 'checked' : '';
-                            const disabled = device.available ? '' : 'disabled';
                             
                             html += `
                                 <div class="storage-option ${selectedClass} ${disabledClass}" onclick="${device.available ? 'selectStorage(\'' + device.path + '\', \'' + device.name + '\', \'' + device.mount + '\', \'' + device.free + '\')' : ''}">
-                                    <input type="radio" name="storage" value="${device.path}" ${checked} ${disabled} onclick="event.stopPropagation()">
                                     <span class="storage-icon">${device.icon}</span>
                                     <div class="storage-details">
                                         <div class="storage-name">${device.name}</div>
-                                        <div class="storage-path">${device.mount || 'Не примонтировано'}</div>
+                                        <div class="storage-path">${device.mount || 'Not mounted'}</div>
                                         ${device.available 
-                                            ? '<div class="storage-space">Свободно: ' + device.free + '</div>'
-                                            : '<div class="storage-error">⚠️ ' + (device.error || 'Недоступно') + '</div>'
+                                            ? '<div class="storage-space">Free: ' + device.free + '</div>'
+                                            : '<div class="storage-space" style="color:#f44336;">⚠️ ' + (device.error || 'Unavailable') + '</div>'
                                         }
                                     </div>
                                 </div>
@@ -454,174 +593,137 @@ cat << 'EOFH'
                         storageDiv.innerHTML = html;
                         
                         if (selectedStorage) {
-                            updateStorageInfo();
                             loadBackups();
                         } else {
                             const firstAvailable = data.devices.find(d => d.available);
                             if (firstAvailable) {
-                                // Находим DOM элемент первого доступного устройства и вызываем клик
-                                const firstRadio = document.querySelector('.storage-option:not(.disabled) input[type="radio"]');
-                                if (firstRadio) {
-                                    firstRadio.click();
-                                }
+                                selectStorage(firstAvailable.path, firstAvailable.name, firstAvailable.mount, firstAvailable.free);
                             }
                         }
                     } else {
-                        storageDiv.innerHTML = '<div class="text-center py-3 text-warning">⚠️ Нет доступных устройств хранения</div>';
+                        storageDiv.innerHTML = '<div class="text-center py-3">⚠️ No storage devices available</div>';
                     }
                 })
                 .catch(error => {
-                    storageDiv.innerHTML = '<div class="text-center py-3 text-danger">❌ Ошибка сканирования</div>';
+                    storageDiv.innerHTML = '<div class="text-center py-3">❌ Scan error</div>';
                     console.error('Scan error:', error);
                 });
         }
-        
+
         function selectStorage(path, name, mount, free) {
             document.querySelectorAll('.storage-option').forEach(opt => {
                 opt.classList.remove('selected');
             });
             event.currentTarget.classList.add('selected');
             
-            const radio = event.currentTarget.querySelector('input[type="radio"]');
-            radio.checked = true;
-            
             selectedStorage = { path, name, mount, free };
-            
-            updateStorageInfo();
             loadBackups();
         }
-        
-        function updateStorageInfo() {
-            if (!selectedStorage) return;
-            
-            const infoDiv = document.getElementById('selectedStorageInfo');
-            infoDiv.style.display = 'block';
-            infoDiv.innerHTML = `
-                <strong>Выбрано устройство:</strong> ${selectedStorage.name}<br>
-                <strong>Путь:</strong> ${selectedStorage.mount}/backups/<br>
-                <strong>Свободно:</strong> ${selectedStorage.free}
-            `;
-        }
-        
+
         function uploadBackup(file) {
             if (!selectedStorage) {
-                showStatus('uploadStatus', '⚠️ Сначала выберите место хранения', 'warning');
+                showNotification('Please select storage location first', 'warning');
                 return;
             }
-            
-            // Показываем прогресс
+
             const progress = document.getElementById('uploadProgress');
-            const progressFill = document.getElementById('progressFill');
+            const progressFill = document.getElementById('uploadProgressFill');
             const progressText = document.getElementById('progressText');
             progress.style.display = 'block';
             progressFill.style.width = '0%';
-            progressText.textContent = 'Подготовка...';
-            
+            progressText.textContent = 'Preparing...';
+
             const formData = new FormData();
             formData.append('backup', file);
-            
+
             const xhr = new XMLHttpRequest();
-            
             xhr.upload.addEventListener('progress', (e) => {
                 if (e.lengthComputable) {
                     const percent = (e.loaded / e.total) * 100;
                     progressFill.style.width = percent + '%';
-                    progressText.textContent = `Загрузка: ${Math.round(percent)}%`;
+                    progressText.textContent = `Uploading: ${Math.round(percent)}%`;
                 }
             });
-            
+
             xhr.addEventListener('load', () => {
                 progress.style.display = 'none';
                 if (xhr.status === 200) {
                     try {
                         const response = JSON.parse(xhr.responseText);
-                        if (response.status === 'success') {
-                            showStatus('uploadStatus', 
-                                `✅ ${response.message} (${response.size})`, 'success');
-                            loadBackups();
-                        } else {
-                            showStatus('uploadStatus', `❌ ${response.message}`, 'error');
-                        }
+                        showNotification(response.message, response.status === 'success' ? 'success' : 'error');
+                        if (response.status === 'success') loadBackups();
                     } catch (e) {
-                        showStatus('uploadStatus', `❌ Ошибка ответа сервера`, 'error');
+                        showNotification('Upload successful', 'success');
+                        loadBackups();
                     }
                 } else {
-                    showStatus('uploadStatus', `❌ Ошибка загрузки (${xhr.status})`, 'error');
+                    showNotification('Upload error', 'error');
                 }
             });
-            
+
             xhr.addEventListener('error', () => {
                 progress.style.display = 'none';
-                showStatus('uploadStatus', '❌ Ошибка соединения', 'error');
+                showNotification('Connection error', 'error');
             });
-            
+
             xhr.open('POST', '/cgi-bin/p/upload_final.cgi?storage=' + encodeURIComponent(selectedStorage.path));
             xhr.send(formData);
         }
-        
+
         function createBackup() {
             if (!selectedStorage) {
-                showStatus('actionStatus', '⚠️ Выберите место для сохранения бэкапа', 'warning');
+                showNotification('Please select storage location', 'warning');
                 return;
             }
-            
+
             updateComponents();
             
             const components = [];
             if (currentBackupComponents.cgi) components.push('cgi');
             if (currentBackupComponents.baresip) components.push('baresip');
             if (currentBackupComponents.keys) components.push('keys');
+            if (currentBackupComponents.mqtt) components.push('mqtt');
             if (currentBackupComponents.scripts) components.push('scripts');
             if (currentBackupComponents.init) components.push('init');
             if (currentBackupComponents.majestic) components.push('majestic');
             if (currentBackupComponents.uart) components.push('uart');
-            
+
             if (components.length === 0) {
-                showStatus('actionStatus', '⚠️ Выберите хотя бы один компонент', 'warning');
+                showNotification('Please select at least one component', 'warning');
                 return;
             }
-            
-            const status = document.getElementById('actionStatus');
-            status.className = 'status info';
-            status.innerHTML = '<div class="loader"></div> Создание бэкапа...';
-            status.style.display = 'block';
-            
+
+            showNotification('Creating backup...', 'info');
+
             fetch('/cgi-bin/p/backup_api.cgi?action=create_backup&storage=' + 
                   encodeURIComponent(selectedStorage.path) + 
                   '&components=' + components.join(','))
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        showStatus('actionStatus', 
-                            `✅ Бэкап создан: ${data.file} (${data.size})`, 'success');
-                        loadBackups();
-                    } else {
-                        showStatus('actionStatus', `❌ ${data.message}`, 'error');
-                    }
+                    showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+                    if (data.status === 'success') loadBackups();
                 })
-                .catch(error => {
-                    showStatus('actionStatus', `❌ Ошибка: ${error}`, 'error');
-                });
+                .catch(error => showNotification('Error: ' + error, 'error'));
         }
-        
+
         function loadBackups() {
             if (!selectedStorage) {
-                document.getElementById('backupList').innerHTML = '<div class="text-center py-4 text-muted">📭 Сначала выберите устройство</div>';
+                document.getElementById('backupList').innerHTML = '<div class="text-center py-4">Please select a storage device first</div>';
                 return;
             }
-            
+
             const listDiv = document.getElementById('backupList');
-            listDiv.innerHTML = '<div class="text-center py-4"><div class="loader"></div><p class="mt-2 text-muted">Загрузка...</p></div>';
-            
+            listDiv.innerHTML = '<div class="text-center py-4">Loading backups...</div>';
+
             fetch('/cgi-bin/p/backup_api.cgi?action=list_backups&storage=' + encodeURIComponent(selectedStorage.path))
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
                         if (!data.backups || data.backups.length === 0) {
-                            listDiv.innerHTML = '<div class="text-center py-4 text-muted">📭 Нет сохраненных бэкапов</div>';
+                            listDiv.innerHTML = '<div class="text-center py-4">📭 No backups found</div>';
                             return;
                         }
-                        
+
                         let html = '';
                         data.backups.forEach(backup => {
                             const dateStr = backup.date.replace(/_/g, ' ');
@@ -633,28 +735,27 @@ cat << 'EOFH'
                                                 dateStr.substring(13, 15);
                             
                             html += '<div class="backup-item">' +
-                                '<div>' +
-                                '<div class="backup-date">📅 ' + displayDate + '</div>' +
-                                '<div class="file-size">📁 ' + backup.file + '</div>' +
-                                '<div class="file-size">💾 Размер: ' + backup.size + '</div>' +
+                                '<div class="backup-info">' +
+                                    '<div class="backup-name">📁 ' + backup.file + '</div>' +
+                                    '<div class="backup-meta">' + displayDate + ' • ' + backup.size + '</div>' +
                                 '</div>' +
-                                '<div class="btn-group-vertical">' +
-                                '<button class="btn btn-info btn-sm" onclick="downloadBackup(\'' + backup.file + '\')">📥 Скачать</button>' +
-                                '<button class="btn btn-success btn-sm" onclick="restoreBackup(\'' + backup.file + '\')">⟲ Восстановить</button>' +
-                                '<button class="btn btn-danger btn-sm" onclick="deleteBackup(\'' + backup.file + '\')">🗑️ Удалить</button>' +
+                                '<div>' +
+                                    '<button class="btn btn-info btn-sm" onclick="downloadBackup(\'' + backup.file + '\')">📥 Download</button> ' +
+                                    '<button class="btn btn-success btn-sm" onclick="restoreBackup(\'' + backup.file + '\')">⟲ Restore</button> ' +
+                                    '<button class="btn btn-danger btn-sm" onclick="deleteBackup(\'' + backup.file + '\')">🗑️ Delete</button>' +
                                 '</div>' +
                                 '</div>';
                         });
                         listDiv.innerHTML = html;
                     } else {
-                        listDiv.innerHTML = '<div class="text-center py-4 text-danger">❌ Ошибка загрузки</div>';
+                        listDiv.innerHTML = '<div class="text-center py-4">❌ Error loading backups</div>';
                     }
                 })
                 .catch(error => {
-                    listDiv.innerHTML = '<div class="text-center py-4 text-danger">❌ Ошибка соединения</div>';
+                    listDiv.innerHTML = '<div class="text-center py-4">❌ Connection error</div>';
                 });
         }
-        
+
         function downloadBackup(file) {
             if (!selectedStorage) return;
             
@@ -685,63 +786,48 @@ cat << 'EOFH'
             form.submit();
             document.body.removeChild(form);
         }
-        
+
         function restoreBackup(file) {
             if (!selectedStorage) return;
             
-            if (!confirm('⚠️ Восстановить бэкап ' + file + '?\n\nЭто перезапишет текущие файлы!\nПосле восстановления рекомендуется перезагрузить камеру.')) return;
+            if (!confirm('⚠️ Restore backup ' + file + '?\n\nThis will overwrite current files!\nReboot recommended after restore.')) return;
             
-            showStatus('actionStatus', 
-                '<div class="loader"></div> Восстановление...', 'info');
+            showNotification('Restoring...', 'info');
             
             fetch('/cgi-bin/p/backup_api.cgi?action=restore_backup&storage=' + 
                   encodeURIComponent(selectedStorage.path) + 
                   '&file=' + encodeURIComponent(file))
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        showStatus('actionStatus', 
-                            '✅ ' + data.message + '<br><small>Рекомендуется перезагрузить</small>', 
-                            'success');
-                    } else {
-                        showStatus('actionStatus', '❌ ' + data.message, 'error');
-                    }
-                    loadBackups();
+                    showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+                    if (data.status === 'success') loadBackups();
                 })
-                .catch(error => {
-                    showStatus('actionStatus', '❌ Ошибка: ' + error, 'error');
-                });
+                .catch(error => showNotification('Error: ' + error, 'error'));
         }
-        
+
         function deleteBackup(file) {
             if (!selectedStorage) return;
             
-            if (!confirm('🗑️ Удалить бэкап ' + file + '?')) return;
+            if (!confirm('🗑️ Delete backup ' + file + '?')) return;
             
             fetch('/cgi-bin/p/backup_api.cgi?action=delete_backup&storage=' + 
                   encodeURIComponent(selectedStorage.path) + 
                   '&file=' + encodeURIComponent(file))
                 .then(r => r.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        showStatus('actionStatus', '✅ ' + data.message, 'success');
-                        loadBackups();
-                    } else {
-                        showStatus('actionStatus', '❌ ' + data.message, 'error');
-                    }
+                    showNotification(data.message, data.status === 'success' ? 'success' : 'error');
+                    if (data.status === 'success') loadBackups();
                 })
-                .catch(error => {
-                    showStatus('actionStatus', '❌ Ошибка: ' + error, 'error');
-                });
+                .catch(error => showNotification('Error: ' + error, 'error'));
         }
-        
-        // Инициализация
+
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             scanStorage();
             updateComponents();
         });
-        
-        // Автообновление списка
+
+        // Auto-refresh backup list
         setInterval(loadBackups, 30000);
     </script>
 </body>

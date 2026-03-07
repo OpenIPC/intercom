@@ -77,6 +77,7 @@ Pragma: no-cache
                             <li><a class="dropdown-item" href="/cgi-bin/p/temp_keys.cgi">⏱️ Temp Keys</a></li>
                             <li><a class="dropdown-item" href="/cgi-bin/p/sounds.cgi">🔊 Sounds</a></li>
                             <li><a class="dropdown-item" href="/cgi-bin/p/door_history.cgi">📋 History</a></li>
+                            <li><a class="dropdown-item" href="/cgi-bin/p/mqtt.cgi">📡 MQTT</a></li>
                             <li><a class="dropdown-item" href="/cgi-bin/backup.cgi">💾 Backups</a></li>
                             <li><hr class="dropdown-divider"></li>
                             
@@ -144,4 +145,3 @@ Pragma: no-cache
 
 <h2><%= $page_title %></h2>
 <% log_read %>
-[file content end]
